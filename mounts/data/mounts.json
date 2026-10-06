@@ -1,0 +1,17 @@
+{
+  "mounts": [
+    {"id": "m01", "category": "normal"},
+    {"id": "m02", "category": "normal"},
+    {"id": "m03", "category": "normal"},
+    {"id": "m04", "category": "normal"},
+    {"id": "m05", "category": "normal"},
+    {"id": "m06", "category": "normal"},
+    {"id": "L01", "category": "limited"},
+    {"id": "L02", "category": "limited"}
+  ],
+  "tiers": [
+    {"min": 2, "bonus": 5},
+    {"min": 4, "bonus": 9},
+    {"min": 6, "bonus": 14}
+  ]
+}
