@@ -4,6 +4,7 @@ package mounts
 import (
 	_ "embed"
 	"encoding/json"
+	"sync"
 )
 
 //go:embed data/mounts.json
@@ -43,35 +44,47 @@ type Result struct {
 // Loader 读取内嵌的坐骑表。
 type Loader struct{}
 
+var (
+	cachedTable *Table
+	tableOnce   sync.Once
+)
+
 // Table 解析内嵌资源并返回坐骑表。
 func (Loader) Table(c *Counter) *Table {
-	var t Table
-	if err := json.Unmarshal(rawTable, &t); err != nil {
-		panic(err)
-	}
-	c.Scanned += len(rawTable)
-	return &t
+	tableOnce.Do(func() {
+		var t Table
+		if err := json.Unmarshal(rawTable, &t); err != nil {
+			panic(err)
+		}
+		cachedTable = &t
+		c.Scanned += len(rawTable)
+	})
+	return cachedTable
 }
 
 // Compute 按拥有的坐骑算出收藏数量与档位加成。
 func (Loader) Compute(owned []string, c *Counter) Result {
 	t := Loader{}.Table(c)
-	count := 0
+	seen := make(map[string]struct{}, len(owned))
 	for _, id := range owned {
-		for _, m := range t.Mounts {
-			if m.ID == id {
-				count++
-				break
-			}
+		seen[id] = struct{}{}
+	}
+	count := 0
+	for _, m := range t.Mounts {
+		if _, ok := seen[m.ID]; !ok {
+			continue
+		}
+		count++
+		if m.Category == "limited" {
+			count++
 		}
 	}
 	bonus := 0
 	min := 0
 	for _, tr := range t.Tiers {
-		if count >= tr.Min {
+		if count >= tr.Min && tr.Min >= min {
 			bonus = tr.Bonus
 			min = tr.Min
-			break
 		}
 	}
 	return Result{Mounts: count, Tier: min, Bonus: bonus, Scanned: c.Scanned}
